@@ -1,0 +1,608 @@
+/* =========================================
+   1. BASE STYLES & FONT
+   ========================================= */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+
+:root {
+    --color-bg-dark: #1a1a2e; /* Deep Purple Background */
+    --color-card-dark: #16213e; /* Sidebar & Card Background */
+    --color-text-light: #e4e4e7;
+    --color-accent-red: #e94560; /* Logout/Accent Red */
+    --color-accent-pink: #a155ff; /* Primary Highlight/Hover */
+    --color-accent-purple: #7c4dff; /* Primary Button/Active */
+    --color-success: #10b981;
+    --color-error: #ef4444;
+    --color-border: #283049;
+    --color-text-muted: #a1a1aa;
+}
+
+body {
+    background-color: var(--color-bg-dark);
+    color: var(--color-text-light);
+    font-family: 'Inter', sans-serif;
+}
+
+/* Base Container */
+.dashboard-container {
+    display: flex;
+    flex-direction: column; /* MOBILE: Stacks sidebar (nav) and main content */
+    width: 100%;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.main-section {
+    flex: 1;
+    padding: 1.5rem 1rem; /* Padding for mobile */
+    overflow-y: auto;
+}
+
+/* =========================================
+   2. AUTH & MODAL STYLES (Retained & Cleaned)
+   ========================================= */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 1rem;
+}
+
+.auth-card {
+    background-color: var(--color-card-dark);
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+    width: 100%;
+    max-width: 25rem;
+    text-align: center;
+    border-top: 5px solid var(--color-accent-red);
+}
+
+.auth-card h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 1.5rem;
+}
+
+.auth-card input {
+    width: 100%;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    background-color: #283049;
+    color: white;
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+    outline: none;
+    transition: border-color 200ms;
+}
+
+.auth-card button {
+    width: 100%;
+    padding: 0.75rem;
+    font-weight: bold;
+    color: white;
+    background-color: var(--color-accent-red);
+    border-radius: 0.5rem;
+    transition: all 200ms ease-in-out;
+    border: none;
+    cursor: pointer;
+    margin-top: 0.5rem;
+}
+
+/* Modal and Toast styles... (Omitted for brevity, but they should remain as is) */
+
+/* =========================================
+   3. MOBILE SIDEBAR (TOP HORIZONTAL NAV)
+   ========================================= */
+.sidebar {
+    width: 100%;
+    flex-shrink: 0;
+    background-color: var(--color-card-dark);
+    border-bottom: 1px solid var(--color-border);
+    padding: 0.75rem 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.logo { /* Renamed from .sidebar-title */
+    color: var(--color-accent-pink);
+    font-weight: 700;
+    font-size: 1.25rem;
+    margin-right: 1rem;
+}
+
+.logout { /* Renamed from .logout-button */
+    background-color: var(--color-accent-red);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 200ms;
+    white-space: nowrap;
+}
+
+.nav-list {
+    display: flex;
+    justify-content: space-around;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column; /* Stack icon and text */
+    align-items: center;
+    cursor: pointer;
+    padding: 0.5rem 0.25rem;
+    border-radius: 0.5rem;
+    transition: all 200ms ease-in-out;
+    font-size: 0.75rem; /* Smaller font for mobile */
+    color: var(--color-text-muted);
+}
+
+.nav-item.active {
+    background: linear-gradient(90deg, #7c4dff33 0%, transparent 100%);
+    color: white;
+    border-bottom: 2px solid var(--color-accent-purple);
+    font-weight: 600;
+    color: var(--color-accent-purple);
+}
+
+.nav-item:not(.active):hover {
+    background-color: #283049;
+    color: white;
+}
+
+.nav-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-bottom: 2px; /* Small space between icon and text */
+}
+
+.nav-label {
+    display: inline;
+}
+
+.user-id { /* Hide user ID text block in mobile nav */
+    display: none;
+}
+
+/* =========================================
+   4. LAYOUT & CARD STYLES (Mobile First)
+   ========================================= */
+.header {
+    margin-bottom: 1.5rem;
+}
+
+.header h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: white;
+}
+
+.header p {
+    color: var(--color-text-muted);
+    margin-top: 0.25rem;
+}
+
+.content-card { /* Main card style for all content */
+    background-color: var(--color-card-dark);
+    padding: 1.5rem;
+    border-radius: 1rem;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.grid-layout {
+    display: grid;
+    grid-template-columns: 1fr; /* MOBILE: Single column */
+    gap: 1.5rem;
+}
+
+/* Crypto Overview Cards */
+.crypto-cards {
+    display: flex;
+    flex-direction: column; /* Stack vertically on mobile */
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.crypto-card {
+    background-color: #0f1629; /* Slightly darker than main card */
+    padding: 1.2rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    border-left: 4px solid var(--color-accent-purple);
+}
+
+.crypto-card h3 {
+    font-size: 1.2rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0.3rem;
+}
+
+.crypto-card .price {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: white;
+}
+
+.crypto-card .change {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.positive { color: var(--color-success); }
+.negative { color: var(--color-error); }
+
+/* Trade Form Specific Styles (Mobile) */
+.trade-type-buttons {
+    display: flex;
+    margin-bottom: 1rem;
+    background-color: #283049;
+    padding: 0.3rem;
+    border-radius: 0.5rem;
+}
+
+.trade-type-buttons button {
+    flex: 1;
+    padding: 0.6rem;
+    border: none;
+    border-radius: 0.4rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 200ms;
+    color: var(--color-text-muted);
+    background: transparent;
+}
+
+.trade-type-buttons button.active {
+    color: white;
+    background: linear-gradient(90deg, #7c4dff, #a155ff);
+    box-shadow: 0 4px 10px rgba(124, 77, 255, 0.4);
+}
+
+.trade-form input {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #283049;
+    color: white;
+    border-radius: 0.5rem;
+    border: 1px solid #475569;
+    outline: none;
+    transition: border-color 200ms;
+    margin-bottom: 1rem;
+}
+
+.submit-trade-btn {
+    width: 100%;
+    padding: 0.85rem;
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(90deg, #7c4dff, #a155ff);
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: opacity 200ms;
+}
+
+/* Portfolio Table Styles (Mobile) */
+.assets-table {
+    width: 100%;
+    text-align: left;
+    font-size: 0.85rem;
+    border-collapse: collapse;
+}
+
+.assets-table thead {
+    border-bottom: 2px solid var(--color-border);
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+.assets-table th, .assets-table td {
+    padding: 0.75rem 0.5rem;
+    white-space: nowrap;
+}
+
+.assets-table tbody tr {
+    border-bottom: 1px solid rgba(55,65,81,0.5);
+}
+
+.coin-name-cell {
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+    color: white;
+}
+
+.coin-icon-wrapper {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-right: 0.5rem;
+}
+
+/* Deposit & Withdraw Input Fields */
+.btc-address {
+    text-align: center;
+    margin: 1.5rem 0;
+}
+
+.btc-address, .withdraw-section form input {
+    width: 100%;
+    max-width: none;
+    padding: 0.8rem;
+    background: #283049;
+    border-radius: 8px;
+    border: 1px solid #475569;
+    color: white;
+}
+
+
+/* =========================================
+   5. DESKTOP MEDIA QUERY (min-width: 1024px)
+   ========================================= */
+@media (min-width: 1024px) {
+    /* Main Layout */
+    .dashboard-container {
+        flex-direction: row; /* DESKTOP: Side-by-side layout */
+    }
+
+    .main-section {
+        padding: 2rem;
+    }
+
+    /* Sidebar - Vertical Nav */
+    .sidebar {
+        width: 16rem;
+        padding: 1.5rem;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        border-right: 1px solid var(--color-border);
+        border-bottom: none;
+        background: linear-gradient(180deg, #16213e 0%, #1a1a2e 100%); /* Subtle gradient */
+    }
+
+    .sidebar-header {
+        flex-direction: column;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+    }
+
+    .logo {
+        margin-right: 0;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+    }
+
+    .logout {
+        width: 100%;
+    }
+
+    .nav-list {
+        flex-direction: column; /* Stack vertically */
+        align-items: flex-start;
+        gap: 0;
+        margin-bottom: 2rem;
+    }
+
+    .nav-item {
+        flex-direction: row;
+        width: 100%;
+        margin-bottom: 0.5rem;
+        padding: 0.6rem 1rem;
+        font-size: 1rem;
+    }
+
+    .nav-item.active {
+        background: linear-gradient(90deg, var(--color-accent-purple), #7c4dff44); /* Gradient Active State */
+        color: white;
+        border-radius: 0.5rem;
+        border-bottom: none;
+    }
+    
+    .nav-icon {
+        margin-right: 0.75rem;
+        margin-bottom: 0;
+    }
+
+    .nav-label {
+        display: inline;
+    }
+
+    .user-id { /* Show user ID text block in desktop sidebar */
+        display: block;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--color-border);
+        font-size: 0.8rem;
+        color: var(--color-text-muted);
+    }
+    
+    .user-id span {
+        display: block;
+        font-size: 0.7rem;
+        margin-top: 0.3rem;
+        color: #6d6d80;
+        word-break: break-all;
+    }
+
+    /* Grid Layouts */
+    .grid-layout {
+        grid-template-columns: repeat(3, minmax(0,1fr)); /* DESKTOP: Three columns */
+        gap: 2rem;
+    }
+
+    .crypto-cards {
+        flex-direction: row; /* Display side-by-side on desktop */
+    }
+    
+    .crypto-card {
+        flex: 1; /* Equal width */
+    }
+
+    .chart-card {
+        grid-column: span 2 / span 2; /* Chart spans 2 columns */
+    }
+    
+    .trade-form-card {
+        grid-column: span 1 / span 1; /* Trade form is 1 column */
+    }
+
+    .portfolio-card-container {
+        grid-column: span 3 / span 3; /* Portfolio spans all 3 columns */
+    }
+}
+/* =========================================
+   6. WALLET / PORTFOLIO CARD FIXES (Mobile)
+   ========================================= */
+
+/* Total Value Header */
+.portfolio-total p {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.portfolio-total h3 {
+    font-size: 2rem; /* Slightly smaller for mobile */
+    font-weight: 700;
+    color: var(--color-success); /* Green for positive balance */
+    margin-bottom: 2rem; /* Space before address bar */
+}
+
+/* BTC Deposit Address Bar FIX */
+.btc-address-section p {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.address-bar {
+    display: flex;
+    align-items: center;
+    background-color: #283049;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid #475569;
+    gap: 10px; /* Space between address and button */
+}
+
+.address-bar .address-text {
+    /* FIX: Force address to shrink and wrap */
+    flex-grow: 1;
+    min-width: 0; 
+    font-size: 0.75rem; 
+    font-family: monospace; 
+    white-space: normal; /* Allow wrapping */
+    word-break: break-all; /* Force long string to break */
+    color: var(--color-text-muted);
+}
+
+.address-bar button {
+    /* Ensure the copy button doesn't shrink */
+    flex-shrink: 0;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+    background-color: var(--color-accent-purple);
+    color: white;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 200ms;
+}
+
+/* Assets Table Mobile Scroll FIX */
+.assets-table-wrapper {
+    /* FIX: This wrapper enables horizontal scrolling on small screens */
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 1.5rem;
+}
+
+.assets-table {
+    min-width: 500px; /* Ensures the table is wide enough to be scrollable */
+    width: 100%;
+    /* Remaining table styles as before... */
+}
+
+/* Coin Name and Icon alignment */
+.coin-name-cell {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}/* Extra Small Screen Optimization (450px and below) */
+@media (max-width: 450px) {
+    
+    .portfolio-card-container {
+        padding: 10px;
+    }
+    
+    .portfolio-header-title {
+        font-size: 1rem;
+        margin-bottom: 10px;
+    }
+
+    .total-value-text {
+        font-size: 1.3rem;
+    }
+    
+    .address-bar {
+        padding: 6px; 
+    }
+
+    .address-bar .address-text {
+        font-size: 0.6rem; 
+    }
+    
+    .address-bar button {
+        padding: 4px 6px; 
+        font-size: 0.55rem; 
+    }
+
+    .assets-table td,
+    .assets-table th {
+        font-size: 0.65rem; 
+        padding: 6px 4px; 
+    }
+    
+    .coin-name-cell {
+        gap: 4px;
+    }
+}
+
+@media (min-width: 1024px) {
+    /* Revert address bar behavior on desktop for a single line */
+    .address-bar .address-text {
+        white-space: nowrap; 
+        word-break: keep-all; 
+        font-size: 0.85rem;
+    }
+
+    /* On desktop, the wrapper is unnecessary, but it won't break anything */
+    .assets-table-wrapper {
+        overflow-x: hidden;
+    }
+}
