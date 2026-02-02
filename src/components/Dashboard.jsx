@@ -1,411 +1,250 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import ChartCard from "./ChartCard";
-import TradeFormCard from "./TradeFormCard";
-import PortfolioCard from "./PortfolioCard";
-import ProfileCard from "./ProfileCard";
-import { initialPortfolio } from "../data/portfolioData";
-import { chartData } from "../data/chartData";
-import {
-  IconHome,
-  IconExchange,
-  IconWallet,
-  IconUser,
-  IconArrowUp,
-} from "./_icons";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  IconHome, IconArrowsExchange, IconWallet, IconUser, IconArrowUp, 
+  IconCopy, IconCheck, IconLogout 
+} from "@tabler/icons-react"; 
 import "../styles/Dashboard.css";
 
-const DEPOSIT_BTC_ADDRESS = "bc1qq22hj0t00uct22me3a4dhw43h56jeny003480z";
+// --- SUB-COMPONENTS ---
 
-export default function Dashboard({ userData, setUserData, setMessageModal }) {
-  const [currentPage, setCurrentPage] = useState("Home");
-  const initialBtcPrice = chartData[chartData.length - 1].price || 100450;
-  const initialEthPrice = 4000;
+const CopyToast = ({ show }) => (
+  <AnimatePresence>
+    {show && (
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+        className="copy-toast"
+      >
+        <IconCheck size={18} /> Address Copied
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
 
-  // ✅ Reset wallet to empty (no funds)
-  const [portfolio, setPortfolio] = useState(() => {
-    return initialPortfolio.map(asset => ({
-      ...asset,
-      amount: 0,
-      value: 0,
-      currentPrice:
-        asset.symbol === "BTC"
-          ? initialBtcPrice
-          : asset.symbol === "ETH"
-          ? initialEthPrice
-          : asset.currentPrice,
-    }));
-  });
+const Modal = ({ isOpen, onClose, title, message, type }) => (
+  <AnimatePresence>
+    {isOpen && (
+      <div className="modal-overlay">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`modal-content ${type}`}>
+          <h3>{title}</h3>
+          <p>{message}</p>
+          <button onClick={onClose}>Close</button>
+        </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
+);
 
-  const [trade, setTrade] = useState({
-    type: "buy",
-    amount: "",
-    total: "",
-    price: String(initialBtcPrice),
-    coin: "BTC",
-  });
+const TradeFormCard = ({ trade, handleTrade, handleTradeChange, portfolio, userBalance }) => {
+  const selectedAsset = portfolio.find(a => a.symbol === trade.symbol) || portfolio[0];
+  const isBuy = trade.type === "buy";
 
-  const [copied, setCopied] = useState(false);
-  const [userId] = useState(
-    userData.id ||
-      (crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()))
+  return (
+    <div className="trade-form-card">
+      <h3>Market Execution</h3>
+      <div className="trade-type-buttons">
+        <button className={isBuy ? "active buy-tab" : ""} onClick={() => handleTradeChange({target:{value:"buy"}}, "type")}>BUY</button>
+        <button className={!isBuy ? "active sell-tab" : ""} onClick={() => handleTradeChange({target:{value:"sell"}}, "type")}>SELL</button>
+      </div>
+
+      <div className="trade-form">
+        <div className="input-group">
+          <label className="dashboard-text-label">Select Asset</label>
+          <div className="custom-select-wrapper">
+            <select value={trade.symbol} onChange={(e) => handleTradeChange(e, "symbol")} className="styled-select">
+              {portfolio.map(coin => <option key={coin.symbol} value={coin.symbol}>{coin.name} ({coin.symbol})</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="input-group">
+          <label className="dashboard-text-label">Amount</label>
+          <input type="number" step="0.0001" value={trade.amount} onChange={(e) => handleTradeChange(e, "amount")} placeholder="0.00" />
+        </div>
+
+        <div className="trade-summary">
+          <div className="summary-row">
+            <span>Price:</span> 
+            <span>${selectedAsset.currentPrice.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+          </div>
+          <div className="summary-row">
+            <span>Total Est:</span> 
+            <span className="est-value">${trade.total}</span>
+          </div>
+        </div>
+
+        <button className="submit-trade-btn" onClick={handleTrade} disabled={isBuy && userBalance <= 0}>
+          {isBuy && userBalance <= 0 ? "Deposit Required" : `Confirm ${trade.type.toUpperCase()} ${trade.symbol}`}
+        </button>
+      </div>
+    </div>
   );
+};
 
-  const [cryptoData, setCryptoData] = useState({
-    BTC: { price: initialBtcPrice, change: 0.15 },
-    ETH: { price: initialEthPrice, change: -0.79 },
-  });
-  const [shimmering, setShimmering] = useState(false);
+// --- MAIN DASHBOARD ---
 
-  // ✅ Save to localStorage
+export default function Dashboard({ userData, setUserData }) {
+  const [currentPage, setCurrentPage] = useState("Home");
+  const [usdBalance, setUsdBalance] = useState(0.00); 
+  const [showCopyToast, setShowCopyToast] = useState(false);
+  
+  const [portfolio, setPortfolio] = useState([
+    { id: "BTC", symbol: "BTC", name: "Bitcoin", amount: 0, currentPrice: 98450.25, change: 1.45 },
+    { id: "ETH", symbol: "ETH", name: "Ethereum", amount: 0, currentPrice: 3120.80, change: -0.82 },
+    { id: "BNB", symbol: "BNB", name: "Binance Coin", amount: 0, currentPrice: 645.15, change: 0.35 }
+  ]);
+
+  const [trade, setTrade] = useState({ type: "buy", symbol: "BTC", amount: "", total: "0.00" });
+  const [modal, setModal] = useState({ isOpen: false, title: "", message: "", type: "success" });
+
   useEffect(() => {
-    localStorage.setItem("mock_portfolio", JSON.stringify(portfolio));
-  }, [portfolio]);
-
-  useEffect(() => {
-    const fetchPrices = async () => {
-      setShimmering(true);
-      const newBtcPrice = chartData[chartData.length - 1].price;
-      const mockBtcChange = (
-        ((newBtcPrice - chartData[0].price) / chartData[0].price) *
-        100
-      ).toFixed(2);
-      const newEthPrice = initialEthPrice;
-      const mockEthChange = -0.79;
-      const newCryptoData = {
-        BTC: { price: newBtcPrice, change: parseFloat(mockBtcChange) },
-        ETH: { price: newEthPrice, change: mockEthChange },
-      };
-      setCryptoData(newCryptoData);
-      setTrade(prev => ({ ...prev, price: String(newBtcPrice) }));
-      setPortfolio(prev =>
-        prev.map(asset => {
-          const data = newCryptoData[asset.symbol] || {
-            price: asset.currentPrice,
-            change: asset.change24h,
-          };
-          return {
-            ...asset,
-            currentPrice: data.price,
-            value: asset.amount * data.price,
-            change24h: data.change,
-          };
-        })
-      );
-      setTimeout(() => setShimmering(false), 800);
-    };
-    fetchPrices();
-    const interval = setInterval(fetchPrices, 60000);
-    return () => clearInterval(interval);
+    const simulateMarket = setInterval(() => {
+      setPortfolio(prev => prev.map(asset => {
+        const move = (Math.random() - 0.5) * (asset.currentPrice * 0.0003);
+        return {
+          ...asset,
+          currentPrice: asset.currentPrice + move,
+          change: asset.change + (Math.random() - 0.5) * 0.02
+        };
+      }));
+    }, 4000);
+    return () => clearInterval(simulateMarket);
   }, []);
 
-  const calculateTotal = btcAmount => {
-    const currentPrice = parseFloat(trade.price) || cryptoData.BTC.price;
-    const amount = parseFloat(btcAmount);
-    if (isNaN(amount) || amount <= 0) return "";
-    return (amount * currentPrice)
-      .toLocaleString("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })
-      .replace(/,/g, "");
-  };
-
-  const calculateAmount = usdTotal => {
-    const currentPrice = parseFloat(trade.price) || cryptoData.BTC.price;
-    const total = parseFloat(usdTotal);
-    if (isNaN(total) || total <= 0 || currentPrice === 0) return "";
-    return (total / currentPrice).toFixed(8);
+  const copyAddress = () => {
+    navigator.clipboard.writeText("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa");
+    setShowCopyToast(true);
+    setTimeout(() => setShowCopyToast(false), 3000);
   };
 
   const handleTradeChange = (e, field) => {
-    const value = e.target.value;
-    setTrade(prevTrade => {
-      let newTrade = { ...prevTrade };
-      if (field === "amount") {
-        newTrade.amount = value;
-        newTrade.total = calculateTotal(value);
-      } else if (field === "total") {
-        newTrade.total = value;
-        newTrade.amount = calculateAmount(value);
-      } else if (field === "type") {
-        newTrade.type = value;
-      }
-      return newTrade;
+    const val = e.target.value;
+    setTrade(prev => {
+      let updated = { ...prev, [field]: val };
+      const asset = portfolio.find(a => a.symbol === updated.symbol);
+      updated.total = updated.amount ? (parseFloat(updated.amount) * (asset?.currentPrice || 0)).toFixed(2) : "0.00";
+      return updated;
     });
   };
 
-  const handleTrade = e => {
-    e.preventDefault();
-    const amount = parseFloat(trade.amount);
-    const price = parseFloat(trade.price);
-    if (amount <= 0 || isNaN(amount)) {
-      setMessageModal({
-        isOpen: true,
-        title: "Invalid Trade",
-        message: "Please enter a valid, positive amount for the BTC quantity.",
-        type: "error",
-      });
-      return;
+  const executeTrade = () => {
+    const cost = parseFloat(trade.total);
+    if (trade.type === "buy") {
+      if (usdBalance < cost) return setModal({ isOpen: true, title: "Declined", message: "Insufficient Funds.", type: "error" });
+      setUsdBalance(b => b - cost);
+      setPortfolio(p => p.map(a => a.symbol === trade.symbol ? { ...a, amount: a.amount + parseFloat(trade.amount) } : a));
+    } else {
+      const asset = portfolio.find(a => a.symbol === trade.symbol);
+      if (asset.amount < parseFloat(trade.amount)) return setModal({ isOpen: true, title: "Declined", message: "Insufficient Crypto.", type: "error" });
+      setUsdBalance(b => b + cost);
+      setPortfolio(p => p.map(a => a.symbol === trade.symbol ? { ...a, amount: a.amount - parseFloat(trade.amount) } : a));
     }
-
-    const cost = amount * price;
-    let tradeSuccess = false;
-
-    setPortfolio(prevPortfolio => {
-      const newPortfolio = prevPortfolio.map(c => ({ ...c }));
-      let idx = newPortfolio.findIndex(c => c.symbol === "BTC");
-      if (idx === -1) {
-        if (trade.type === "sell") return prevPortfolio;
-        newPortfolio.push({
-          id: "BTC",
-          symbol: "BTC",
-          amount: amount,
-          currentPrice: price,
-          value: cost,
-          change24h: cryptoData.BTC.change,
-        });
-        tradeSuccess = true;
-      } else {
-        const current = newPortfolio[idx].amount;
-        const newAmount =
-          trade.type === "buy" ? current + amount : current - amount;
-        if (trade.type === "sell" && newAmount < 0) {
-          setMessageModal({
-            isOpen: true,
-            title: "Sell Failed",
-            message: "Insufficient BTC balance to complete the sell order.",
-            type: "error",
-          });
-          return prevPortfolio;
-        }
-        newPortfolio[idx].amount = newAmount;
-        newPortfolio[idx].value = newAmount * price;
-        tradeSuccess = true;
-      }
-      return newPortfolio;
-    });
-
-    if (tradeSuccess) {
-      const verb = trade.type === "buy" ? "Buy" : "Sell";
-      setMessageModal({
-        isOpen: true,
-        title: `${verb} Order Placed`,
-        message: `Successfully placed an order to ${trade.type} ${amount.toFixed(
-          8
-        )} BTC for $${cost.toLocaleString("en-US", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}.`,
-        type: "success",
-      });
-      setTrade(p => ({ ...p, amount: "", total: "" }));
-    }
+    setModal({ isOpen: true, title: "Order Executed", message: "Your trade was successful.", type: "success" });
+    setTrade({ ...trade, amount: "", total: "0.00" });
   };
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(DEPOSIT_BTC_ADDRESS);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleLogout = () => setUserData(null);
-
-  const renderContent = () => {
-    const currentPrice = trade.price || cryptoData.BTC.price;
-
-    switch (currentPage) {
-      case "Home":
-        return (
-          <div className="content-wrapper home-section">
-            <h2>Wealth Wave Profit Overview</h2>
-            <div className="crypto-cards">
-              {["BTC", "ETH"].map(coin => (
-                <div
-                  key={coin}
-                  className={`crypto-card ${shimmering ? "shimmer" : ""}`}
-                >
-                  <h3>{coin}</h3>
-                  <p className="price">
-                    ${cryptoData[coin].price.toLocaleString()}
-                  </p>
-                  <p
-                    className={`change ${
-                      cryptoData[coin].change >= 0 ? "positive" : "negative"
-                    }`}
-                  >
-                    {cryptoData[coin].change >= 0 ? "▲" : "▼"}{" "}
-                    {Math.abs(cryptoData[coin].change)}%
-                    <span className="period"> (24h)</span>
-                  </p>
-                </div>
-              ))}
-            </div>
-            <div className="grid-layout">
-              <ChartCard
-                currentBtcPrice={cryptoData.BTC.price}
-                btc24hChange={cryptoData.BTC.change}
-              />
-              <TradeFormCard
-                trade={trade}
-                handleTrade={handleTrade}
-                handleTradeChange={handleTradeChange}
-                currentPrice={currentPrice}
-              />
-            </div>
-          </div>
-        );
-
-      case "Trade":
-        return (
-          <div className="content-wrapper trade-only-section">
-            <h2>Place Trade Order</h2>
-            <div className="grid-layout trade-single-column">
-              <TradeFormCard
-                trade={trade}
-                handleTrade={handleTrade}
-                handleTradeChange={handleTradeChange}
-                currentPrice={currentPrice}
-              />
-            </div>
-          </div>
-        );
-
-      case "Wallet":
-        return (
-          <div className="content-wrapper wallet-section">
-            <h2>Your Portfolio</h2>
-            <div className="grid-layout portfolio-col-span-3">
-              <PortfolioCard
-                portfolio={portfolio}
-                handleCopy={handleCopy}
-                copied={copied}
-                btcAddress={DEPOSIT_BTC_ADDRESS}
-              />
-            </div>
-          </div>
-        );
-
-      case "Deposit":
-        return (
-          <div className="content-wrapper deposit-section">
-            <h2>Deposit Funds</h2>
-            <p>Send Bitcoin to this address to deposit into your wallet:</p>
-            <div className="btc-address">{DEPOSIT_BTC_ADDRESS}</div>
-            <button onClick={handleCopy}>
-              {copied ? "Copied!" : "Copy Address"}
-            </button>
-            <p className="info">
-              Please send only BTC to this address. Deposits will appear after
-              network confirmations.
-            </p>
-          </div>
-        );
-
-      case "Withdraw":
-        return (
-          <div className="content-wrapper withdraw-section">
-            <h2>Withdraw Funds</h2>
-            <p>To withdraw your Bitcoin, please enter your BTC address:</p>
-            <form
-              className="withdraw-form"
-              onSubmit={e => {
-                e.preventDefault();
-                setMessageModal({
-                  isOpen: true,
-                  title: "Withdrawal Requested",
-                  message:
-                    "Your withdrawal request has been submitted successfully.",
-                  type: "success",
-                });
-              }}
-            >
-              <input
-                type="text"
-                placeholder="Enter BTC wallet address"
-                required
-              />
-              <input
-                type="number"
-                placeholder="Enter amount in BTC"
-                min="0.0001"
-                step="0.0001"
-                required
-              />
-              <button type="submit">Submit Withdrawal</button>
-            </form>
-            <p className="info">
-              Withdrawals are processed within 24 hours. Make sure your address
-              is correct.
-            </p>
-          </div>
-        );
-
-      case "Profile":
-        return (
-          <div className="content-wrapper profile-section">
-            <h2>User Profile</h2>
-            <div className="grid-layout">
-              <ProfileCard userData={userData} userId={userId} />
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  const navItems = [
-    { name: "Home", icon: IconHome },
-    { name: "Trade", icon: IconExchange },
-    { name: "Wallet", icon: IconWallet },
-    { name: "Deposit", icon: IconWallet },
-    { name: "Withdraw", icon: IconArrowUp },
-    { name: "Profile", icon: IconUser },
-  ];
 
   return (
     <div className="dashboard-container">
-      <motion.div
-        initial={{ x: -100 }}
-        animate={{ x: 0 }}
-        transition={{ type: "spring", stiffness: 100 }}
-        className="sidebar"
-      >
-        <div className="sidebar-header">
-          <h2 className="logo">Wealth Wave Profit</h2>
-          <button className="logout" onClick={handleLogout}>
-            Logout
-          </button>
+      <aside className="sidebar">
+        <div className="sidebar-top">
+          <h2 className="logo">WEALTH WAVE</h2>
+          <ul className="nav-list">
+            <li className={`nav-item ${currentPage === "Home" ? "active" : ""}`} onClick={() => setCurrentPage("Home")}><IconHome size={22}/> <span>Home</span></li>
+            <li className={`nav-item ${currentPage === "Trade" ? "active" : ""}`} onClick={() => setCurrentPage("Trade")}><IconArrowsExchange size={22}/> <span>Trade</span></li>
+            <li className={`nav-item ${currentPage === "Wallet" ? "active" : ""}`} onClick={() => setCurrentPage("Wallet")}><IconWallet size={22}/> <span>Wallet</span></li>
+            <li className={`nav-item ${currentPage === "Deposit" ? "active" : ""}`} onClick={() => setCurrentPage("Deposit")}><IconArrowUp size={22}/> <span>Deposit</span></li>
+          </ul>
         </div>
-        <ul className="nav-list">
-          {navItems.map(item => (
-            <li
-              key={item.name}
-              className={`nav-item ${
-                currentPage === item.name ? "active" : ""
-              }`}
-              onClick={() => setCurrentPage(item.name)}
-            >
-              <item.icon className="nav-icon" />
-              <span>{item.name}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="user-id">
-          Logged in as: <br />
-          <span>{userId}</span>
-        </p>
-      </motion.div>
+        <div className="sidebar-footer">
+          <div className="user-id">ID: <span>{userData?.id || "WW-88291"}</span></div>
+          <button className="logout" onClick={() => setUserData(null)}><IconLogout size={18}/> Sign Out</button>
+        </div>
+      </aside>
 
-      <div className="main-section">
+      <main className="main-section">
         <header className="header">
-          <h1>{currentPage}</h1>
-          <p>Welcome back, {userData.name}!</p>
+          <div className="header-titles">
+            <h1>{currentPage}</h1>
+            <p className="market-status">Live Market Data</p>
+          </div>
+          <div className="header-user"><IconUser size={28} color="#c7b7ff"/></div>
         </header>
-        {renderContent()}
-      </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div key={currentPage} initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} exit={{opacity:0, y:-10}}>
+            
+            {currentPage === "Home" && (
+              <div className="home-content">
+                <div className="crypto-cards">
+                  <div className="crypto-card highlight-card">
+                    <p className="dashboard-text-label">Available USD</p>
+                    <p className="price balance-green">${usdBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                  </div>
+                  {portfolio.map(coin => (
+                    <div className="crypto-card" key={coin.symbol}>
+                      <h3>{coin.symbol}/USD</h3>
+                      <p className="price">${coin.currentPrice.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                      <span className={coin.change >= 0 ? "positive" : "negative"}>
+                        {coin.change >= 0 ? "+" : ""}{coin.change.toFixed(2)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="centered-trade-container">
+                    <TradeFormCard trade={trade} handleTrade={executeTrade} handleTradeChange={handleTradeChange} portfolio={portfolio} userBalance={usdBalance} />
+                </div>
+              </div>
+            )}
+
+            {currentPage === "Trade" && (
+               <div className="centered-view">
+                 <TradeFormCard trade={trade} handleTrade={executeTrade} handleTradeChange={handleTradeChange} portfolio={portfolio} userBalance={usdBalance} />
+               </div>
+            )}
+
+            {currentPage === "Wallet" && (
+              <div className="portfolio-view content-card">
+                <div className="portfolio-header">
+                  <p className="dashboard-text-label">Estimated Assets</p>
+                  <h3>${portfolio.reduce((acc, curr) => acc + (curr.amount * curr.currentPrice), 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</h3>
+                </div>
+                <table className="assets-table">
+                  <thead><tr><th>Asset</th><th>Balance</th><th>Value</th></tr></thead>
+                  <tbody>
+                    {portfolio.map(a => (
+                      <tr key={a.id}>
+                        <td><strong>{a.name}</strong></td>
+                        <td>{a.amount.toFixed(4)} {a.symbol}</td>
+                        <td className="positive">${(a.amount * a.currentPrice).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {currentPage === "Deposit" && (
+              <div className="deposit-view content-card">
+                <h2>Fund Account</h2>
+                <p className="dashboard-text-label">Transfer BTC to the secure address below.</p>
+                <div className="styled-address-container">
+                  <div className="address-wrapper">
+                    <code className="address-text">1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa</code>
+                  </div>
+                  <button onClick={copyAddress} className="copy-btn-styled">
+                    <IconCopy size={18} />
+                  </button>
+                </div>
+                <div className="info-box-styled">Min: 0.001 BTC | Speed: 15-30 Mins</div>
+              </div>
+            )}
+
+          </motion.div>
+        </AnimatePresence>
+      </main>
+
+      <CopyToast show={showCopyToast} />
+      <Modal {...modal} onClose={() => setModal({...modal, isOpen: false})} />
     </div>
   );
 }
